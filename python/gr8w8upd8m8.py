@@ -29,7 +29,7 @@ TOP_LEFT = 2
 BOTTOM_LEFT = 3
 
 BLUETOOTH_NAME = "Nintendo RVL-WBC-01"
-
+address = ('127.0.0.1',8000)
 
 class EventProcessor:
     def __init__(self):
@@ -73,7 +73,7 @@ class Wiiboard:
         # Sockets and status
         self.receivesocket = None
         self.controlsocket = None
-
+	self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.processor = processor
         self.calibration = []
         self.calibrationRequested = False
@@ -205,6 +205,7 @@ class Wiiboard:
 	if( ( bottomLeft + bottomRight) !=0):
 	   ycenter = (topLeft + topRight) - (bottomLeft + bottomRight)
  	   print("ycenter:",ycenter/total)  
+	self.s.sendto(struct.pack('f', xcenter,ycenter),address)
 	return boardEvent
 
     def calcMass(self, raw, pos):
