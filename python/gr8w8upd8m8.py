@@ -205,7 +205,7 @@ class Wiiboard:
 	if( ( bottomLeft + bottomRight) !=0):
 	   ycenter = (topLeft + topRight) - (bottomLeft + bottomRight)
  	   print("ycenter:",ycenter/total)  
-	self.s.sendto(struct.pack('f', xcenter,ycenter),address)
+	self.s.sendto(struct.pack('BB', int(xcenter*127+127),int(ycenter*127+127)),address)
 	return boardEvent
 
     def calcMass(self, raw, pos):
