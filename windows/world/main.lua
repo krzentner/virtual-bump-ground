@@ -1,3 +1,11 @@
+print("Starting...")
+local socket = require("socket")
+local inPort = 8800
+local localIP = assert(socket.dns.toip("localhost"))
+local inSocket = assert(socket.udp());
+inSocket:setsockname('*', inPort)
+inSocket:settimeout(0.001)
+
 local models = {}
 
 local x_offset = 0
@@ -5,9 +13,11 @@ local y_offset = 0
 local z_offset = 0
 
 function lovr.load()
+  print("Loading...")
   models['mountains'] = lovr.graphics.newModel('mountains.glb')
   -- models['minecraft'] = lovr.graphics.newModel('minecraft.glb')
   lovr.headset.setClipDistance(0.1, 1000)
+  print("Done loading.")
 end
 
 function draw_controllers()
@@ -49,6 +59,16 @@ end
 
 local MOVE_COEF = 20
 
+function move(frame_q, dt, dx, dz)
+  dx = MOVE_COEF * dt * dx
+  dz = -MOVE_COEF * dt * dz
+
+  local hdx, hdy, hdz = frame_q:mul(lovr.math.vec3(dx, 0, dz)):unpack()
+  x_offset = x_offset - MOVE_COEF * dt * hdx
+  z_offset = z_offset - MOVE_COEF * dt * hdz
+  y_offset = y_offset - MOVE_COEF * dt * hdy
+end
+
 function lovr.update(dt)
   -- Large dt values cause problems.
   if dt > 0.1 then
@@ -58,11 +78,14 @@ function lovr.update(dt)
   local head_q = lovr.math.quat(head_angle, head_ax, head_ay, head_az)
   local dx, dz = lovr.headset.getAxis('hand/left', 'touchpad')
 
-  dx = MOVE_COEF * dt * dx
-  dz = -MOVE_COEF * dt * dz
+  move(head_q, dt, dx, dz)
 
-  local hdx, hdy, hdz = head_q:mul(lovr.math.vec3(dx, 0, dz)):unpack()
-  x_offset = x_offset - MOVE_COEF * dt * hdx
-  z_offset = z_offset - MOVE_COEF * dt * hdz
-  y_offset = y_offset - MOVE_COEF * dt * hdy
+  local boardData = inSocket:receive()
+  if boardData ~= nil then
+    dx = (string.byte(boardData, 1) - 127) / 127
+    dz = (string.byte(boardData, 2) - 127) / 127
+    print("boardData.dx: " .. dx)
+    print("boardData.dz: " .. dz)
+    move(head_q, dt, dx, dz)
+  end
 end
