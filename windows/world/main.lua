@@ -1,6 +1,6 @@
 print("Starting...")
 local socket = require("socket")
-local inPort = 8800
+local inPort = 8000
 local localIP = assert(socket.dns.toip("localhost"))
 local inSocket = assert(socket.udp());
 inSocket:setsockname('*', inPort)
@@ -81,11 +81,14 @@ function lovr.update(dt)
   move(head_q, dt, dx, dz)
 
   local boardData = inSocket:receive()
-  if boardData ~= nil then
-    dx = (string.byte(boardData, 1) - 127) / 127
+  print('boardData:')
+  print(boardData)
+  while boardData ~= nil do
+    dx = -(string.byte(boardData, 1) - 127) / 127
     dz = (string.byte(boardData, 2) - 127) / 127
     print("boardData.dx: " .. dx)
     print("boardData.dz: " .. dz)
     move(head_q, dt, dx, dz)
+    boardData = inSocket:receive()
   end
 end

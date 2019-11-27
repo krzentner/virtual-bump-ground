@@ -5,6 +5,7 @@ import time
 import bluetooth
 import sys
 import subprocess
+import struct
 
 CONTINUOUS_REPORTING = "04"  # Easier as string with leading zero
 
@@ -42,7 +43,7 @@ class EventProcessor:
             self._events.append(event.totalWeight)
             if not self._measured:
             #    print ("Starting measurement.")
-		print(event.totalWeight*2.2)               
+                print(event.totalWeight*2.2)
  # self._measured = True
         elif self._measured:
             self.done = True
@@ -73,7 +74,7 @@ class Wiiboard:
         # Sockets and status
         self.receivesocket = None
         self.controlsocket = None
-	self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.processor = processor
         self.calibration = []
         self.calibrationRequested = False
@@ -196,17 +197,20 @@ class Wiiboard:
         topRight = self.calcMass(rawTR, TOP_RIGHT)
         bottomLeft = self.calcMass(rawBL, BOTTOM_LEFT)
         bottomRight = self.calcMass(rawBR, BOTTOM_RIGHT)
+        print('topLeft', topLeft)
+        print('topRight', topRight)
+        print('bottomLeft', bottomLeft)
+        print('bottomRight', bottomRight)
+
         boardEvent = BoardEvent(topLeft, topRight, bottomLeft, bottomRight, buttonPressed, buttonReleased)
-        total = topLeft + topRight + bottomLeft + bottomRight;
-	if ( (topRight + bottomRight) != 0):
-	    xcenter = (topLeft + bottomLeft) - (topRight + bottomRight)
-	  #  ycenter = (topLeft + topRight) / (bottomLeft + bottomRight)
-	    print("x:", xcenter/total)
-	if( ( bottomLeft + bottomRight) !=0):
-	   ycenter = (topLeft + topRight) - (bottomLeft + bottomRight)
- 	   print("ycenter:",ycenter/total)  
-	self.s.sendto(struct.pack('BB', int(xcenter*127+127),int(ycenter*127+127)),address)
-	return boardEvent
+        total = topLeft + topRight + bottomLeft + bottomRight
+        xcenter = (topLeft + bottomLeft) - (topRight + bottomRight)
+        ycenter = (topLeft + topRight) - (bottomLeft + bottomRight)
+        if total:
+            self.s.sendto(struct.pack('BB', int((xcenter/total)*127+127),
+                                      int((ycenter/total)*127+127)),
+                          address)
+        return boardEvent
 
     def calcMass(self, raw, pos):
         val = 0.0
