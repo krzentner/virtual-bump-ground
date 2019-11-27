@@ -58,6 +58,7 @@ function lovr.draw()
 end
 
 local MOVE_COEF = 20
+local DX_BOARD_COEFF = 0.5
 
 function move(frame_q, dt, dx, dz)
   dx = MOVE_COEF * dt * dx
@@ -81,14 +82,12 @@ function lovr.update(dt)
   move(head_q, dt, dx, dz)
 
   local boardData = inSocket:receive()
-  print('boardData:')
-  print(boardData)
   while boardData ~= nil do
     dx = -(string.byte(boardData, 1) - 127) / 127
     dz = (string.byte(boardData, 2) - 127) / 127
     print("boardData.dx: " .. dx)
     print("boardData.dz: " .. dz)
-    move(head_q, dt, dx, dz)
+    move(head_q, dt, DX_BOARD_COEFF * dx, dz)
     boardData = inSocket:receive()
   end
 end

@@ -206,7 +206,8 @@ class Wiiboard:
         total = topLeft + topRight + bottomLeft + bottomRight
         xcenter = (topLeft + bottomLeft) - (topRight + bottomRight)
         ycenter = (topLeft + topRight) - (bottomLeft + bottomRight)
-        if total:
+        print('total', total)
+        if total > 10:
             self.s.sendto(struct.pack('BB', int((xcenter/total)*127+127),
                                       int((ycenter/total)*127+127)),
                           address)
