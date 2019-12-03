@@ -11,7 +11,7 @@ local models = {}
 local x_offset = 0
 local y_offset = 0
 local z_offset = 0
-local angle_offset = 0
+local angle_offset = 3.14
 
 function lovr.load()
   print("Loading...")
@@ -52,13 +52,13 @@ function lovr.draw()
   draw_controllers()
 
   -- Must draw "environment" objects after this.
-  lovr.graphics.translate(x_offset, y_offset, z_offset)
   lovr.graphics.rotate(angle_offset, 0, 1, 0)
+  lovr.graphics.translate(x_offset, y_offset, z_offset)
   if models['mountains'] ~= nil then
     models['mountains']:draw(0, 0, 0, 10.0)
   end
   if models['maze'] ~= nil then
-    models['maze']:draw(0, 0, 0, 10.0)
+    models['maze']:draw(0, 0, 0, 1.0)
   end
   if models['minecraft'] ~= nil then
     models['minecraft']:draw(0, -55, 0, 1.0)
@@ -66,18 +66,21 @@ function lovr.draw()
 end
 
 local MOVE_COEF = 20
-local TURN_COEF = 100.0
+local TURN_COEF = 3000.0
 local DX_BOARD_COEFF = 0.5
-local DX_COEF = 0.05
+local DX_COEF = 0.005
 
 function move(frame_q, dt, dx, dz)
   print("move", dx, dz)
   dx = MOVE_COEF * dt * dx * DX_COEF
   dz = -MOVE_COEF * dt * dz
   da = TURN_COEF * dt * dx
-  local head_v = frame_q:mul(lovr.math.vec3(dx, 0, dz))
-  local rotate_q = lovr.math.quat(angle_offset, 0, 1, 0)
-  local hdx, hdy, hdz = rotate_q:mul(head_v):unpack()
+  local rotate_q = lovr.math.quat(-angle_offset, 0, 1, 0)
+  local head_v = lovr.math.vec3(dx, 0, dz)
+  head_v = frame_q:mul(head_v)
+  head_v = rotate_q:mul(head_v)
+  --head_v = rotate_q:mul(head_v)
+  local hdx, hdy, hdz = head_v:unpack()
   print("angle:", angle_offset)
   x_offset = x_offset - MOVE_COEF * dt * hdx
   z_offset = z_offset - MOVE_COEF * dt * hdz
