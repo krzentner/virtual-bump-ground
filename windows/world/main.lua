@@ -12,10 +12,42 @@ local models = {}
 local x_offset = 0
 local y_offset = 0
 local z_offset = 0
-local angle_offset = 3.14
+local angle_offset = 0
 
-function lovr.load()
+local MOVE_COEF = 20
+local TURN_COEF = 2000.0
+local DX_BOARD_COEFF = 0.5
+local DX_COEF = 0.005
+local DY_COEF = 0.001
+local DEAD_ZONE = 0.05
+local MAX_ZONE = 0.6
+--local VIBRATION_COEF = 0.05
+local VIBRATION_COEF = 50.0
+
+local VIBRATION_PACKET_RATE = 0.1
+local time_to_next_vibration = VIBRATION_PACKET_RATE
+
+local dx_integral = 0
+local dx_alpha = 0.1
+local dz_integral = 0
+local dz_alpha = 0.1
+
+local dx_total = 0
+local dz_total = 0
+local dt_total = 0
+
+
+function lovr.load(args)
   print("Loading...")
+  for _, arg in ipairs(args) do
+	  print(string.format("arg: '%s'", arg))
+	  if arg == "--no-vibration" then
+		  print("Disabling vibration")
+		  VIBRATION_COEF = 0
+	  else
+		  error(string.format("Unknown arg: '%s'", arg))
+	  end
+  end
   --models['mountains'] = lovr.graphics.newModel('mountains.glb')
   --models['mountains'] = lovr.graphics.newModel('mountains3.glb')
   models['maze'] = lovr.graphics.newModel('maze.glb')
@@ -64,29 +96,24 @@ function lovr.draw()
   end
 end
 
-local MOVE_COEF = 20
-local TURN_COEF = 2000.0
-local DX_BOARD_COEFF = 0.5
-local DX_COEF = 0.005
-local DY_COEF = 0.001
-local DEAD_ZONE = 0.05
-local MAX_ZONE = 0.6
---local VIBRATION_COEF = 0.05
-local VIBRATION_COEF = 50.0
-
-local VIBRATION_PACKET_RATE = 0.1
-local time_to_next_vibration = VIBRATION_PACKET_RATE
-
 function move(frame_q, dt, dx, dz)
+  dx = dx_alpha * dx + (1 - dx_alpha) * dx_integral
+  dz = dz_alpha * dz + (1 - dz_alpha) * dz_integral
+  dx_integral = dx
+  dz_integral = dz
+  dx_total = dx_total + dx
+  dz_total = dz_total + dz
+
   local vl = math.floor(VIBRATION_COEF * dt * math.abs(dz) * 255)
   dx = MOVE_COEF * dt * dx * DX_COEF
   dz = -MOVE_COEF * dt * dz
+
   da = TURN_COEF * dt * dx
     
   if time_to_next_vibration < 0 then
 	  local vibration = string.char(vl, 0xff, vl, 0xff,0,0,0,0)
 	  s1:send(vibration) -- start session
-  	  print("sent:", vibration)
+  	  --print("sent:", vibration)
 	time_to_next_vibration = VIBRATION_PACKET_RATE
   else
 	time_to_next_vibration = time_to_next_vibration - dt
@@ -118,6 +145,7 @@ function dead_clip(v)
 end
 
 function lovr.update(dt)
+  dt_total = dt_total + dt
   -- Large dt values cause problems.
   if dt > 0.1 then
     dt = 0.1
@@ -142,4 +170,10 @@ function lovr.update(dt)
     move(head_q, dt, DX_BOARD_COEFF * dx, dz * dz)
     boardData = inSocket:receive()
   end
+  print("dt_total", dt_total)
+  print("x_offset", x_offset)
+  print("z_offset", z_offset)
+  print("angle_offset", angle_offset)
+  print("dx_total", dx_total)
+  print("dz_total", dz_total)
 end
