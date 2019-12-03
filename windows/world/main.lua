@@ -14,7 +14,9 @@ local z_offset = 0
 
 function lovr.load()
   print("Loading...")
-  models['mountains'] = lovr.graphics.newModel('mountains.glb')
+  --models['mountains'] = lovr.graphics.newModel('mountains.glb')
+  --models['mountains'] = lovr.graphics.newModel('mountains3.glb')
+  models['maze'] = lovr.graphics.newModel('maze.glb')
   -- models['minecraft'] = lovr.graphics.newModel('minecraft.glb')
   lovr.headset.setClipDistance(0.1, 1000)
   print("Done loading.")
@@ -51,6 +53,9 @@ function lovr.draw()
 
   if models['mountains'] ~= nil then
     models['mountains']:draw(0, 0, 0, 10.0)
+  end
+  if models['maze'] ~= nil then
+    models['maze']:draw(0, 0, 0, 10.0)
   end
   if models['minecraft'] ~= nil then
     models['minecraft']:draw(0, -55, 0, 1.0)
