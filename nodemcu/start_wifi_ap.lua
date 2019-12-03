@@ -10,8 +10,13 @@ wifi.setmode(wifi.SOFTAP)
 wifi.ap.config{
   ssid=AP_SSID,
   pwd=AP_PASS,
-  hidden=true,
+  hidden=false,
   save=false,
+}
+wifi.ap.setip{
+  ip="192.168.1.1",
+  netmask="255.255.255.0",
+  gateway="192.168.1.1"
 }
 
 wifi.eventmon.register(wifi.eventmon.AP_STACONNECTED, function(T) 
