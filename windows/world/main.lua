@@ -1,11 +1,12 @@
 print("Starting...")
 local socket = require("socket")
+local s1 = socket.udp()
 local inPort = 8000
 local localIP = assert(socket.dns.toip("localhost"))
 local inSocket = assert(socket.udp());
 inSocket:setsockname('*', inPort)
 inSocket:settimeout(0.001)
-
+s1:setpeername( "192.168.1.1", 18000)
 local models = {}
 
 local x_offset = 0
@@ -63,18 +64,33 @@ function lovr.draw()
   end
 end
 
-local MOVE_COEF = 40
+local MOVE_COEF = 20
 local TURN_COEF = 2000.0
 local DX_BOARD_COEFF = 0.5
 local DX_COEF = 0.005
 local DY_COEF = 0.001
 local DEAD_ZONE = 0.05
 local MAX_ZONE = 0.6
+--local VIBRATION_COEF = 0.05
+local VIBRATION_COEF = 50.0
+
+local VIBRATION_PACKET_RATE = 0.1
+local time_to_next_vibration = VIBRATION_PACKET_RATE
 
 function move(frame_q, dt, dx, dz)
+  local vl = math.floor(VIBRATION_COEF * dt * math.abs(dz) * 255)
   dx = MOVE_COEF * dt * dx * DX_COEF
   dz = -MOVE_COEF * dt * dz
   da = TURN_COEF * dt * dx
+    
+  if time_to_next_vibration < 0 then
+	  local vibration = string.char(vl, 0xff, vl, 0xff,0,0,0,0)
+	  s1:send(vibration) -- start session
+  	  print("sent:", vibration)
+	time_to_next_vibration = VIBRATION_PACKET_RATE
+  else
+	time_to_next_vibration = time_to_next_vibration - dt
+  end
   local rotate_q = lovr.math.quat(-angle_offset, 0, 1, 0)
   local head_v = lovr.math.vec3(dx, 0, dz)
   --head_v = frame_q:mul(head_v)
