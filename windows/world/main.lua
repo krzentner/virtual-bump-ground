@@ -12,7 +12,7 @@ local models = {}
 local x_offset = 0
 local y_offset = 0
 local z_offset = 0
-local angle_offset = 0
+local angle_offset = math.pi
 
 local MOVE_COEF = 20
 local TURN_COEF = 2000.0
