@@ -160,7 +160,7 @@ class Wiiboard:
     def discover(self):
         print( "Press the red sync button on the board now")
         address = None
-        bluetoothdevices = bluetooth.discover_devices(duration=6, lookup_names=True)
+        bluetoothdevices = bluetooth.discover_devices(duration=12, lookup_names=True)
         for bluetoothdevice in bluetoothdevices:
             if bluetoothdevice[1] == BLUETOOTH_NAME:
                 address = bluetoothdevice[0]
@@ -310,7 +310,7 @@ def main():
     board.wait(500)
     board.setLight(True)
     board.receive()
-
+    print("no board found")
     print (processor.weight)
 
     # Disconnect the balance board after exiting.

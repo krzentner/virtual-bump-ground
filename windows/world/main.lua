@@ -11,6 +11,7 @@ local models = {}
 local x_offset = 0
 local y_offset = 0
 local z_offset = 0
+local angle_offset = 0
 
 function lovr.load()
   print("Loading...")
@@ -24,6 +25,7 @@ end
 
 function draw_controllers()
   for hand in ipairs(lovr.headset.getHands()) do
+    print("hand:" .. hand)
     if hand == 1 then
       hand = 'hand/left'
     elseif hand == 2 then
@@ -45,12 +47,13 @@ function draw_sky()
 end
 
 function lovr.draw()
+  print("draw")
   draw_sky()
   draw_controllers()
 
   -- Must draw "environment" objects after this.
   lovr.graphics.translate(x_offset, y_offset, z_offset)
-
+  lovr.graphics.rotate(angle_offset, 0, 1, 0)
   if models['mountains'] ~= nil then
     models['mountains']:draw(0, 0, 0, 10.0)
   end
@@ -63,28 +66,43 @@ function lovr.draw()
 end
 
 local MOVE_COEF = 20
+local TURN_COEF = 100.0
 local DX_BOARD_COEFF = 0.5
+local DX_COEF = 0.05
 
 function move(frame_q, dt, dx, dz)
-  dx = MOVE_COEF * dt * dx
+  print("move", dx, dz)
+  dx = MOVE_COEF * dt * dx * DX_COEF
   dz = -MOVE_COEF * dt * dz
-
-  local hdx, hdy, hdz = frame_q:mul(lovr.math.vec3(dx, 0, dz)):unpack()
+  da = TURN_COEF * dt * dx
+  local head_v = frame_q:mul(lovr.math.vec3(dx, 0, dz))
+  local rotate_q = lovr.math.quat(angle_offset, 0, 1, 0)
+  local hdx, hdy, hdz = rotate_q:mul(head_v):unpack()
+  print("angle:", angle_offset)
   x_offset = x_offset - MOVE_COEF * dt * hdx
   z_offset = z_offset - MOVE_COEF * dt * hdz
   y_offset = y_offset - MOVE_COEF * dt * hdy
+  angle_offset = angle_offset + da
+  print("end move")
 end
 
 function lovr.update(dt)
+  print("update")
+  if false then
+  	return nil
+  end
   -- Large dt values cause problems.
   if dt > 0.1 then
     dt = 0.1
   end
   local head_x, head_y, head_z, head_angle, head_ax, head_ay, head_az = lovr.headset.getPose('head')
+  print("got head pose")
   local head_q = lovr.math.quat(head_angle, head_ax, head_ay, head_az)
-  local dx, dz = lovr.headset.getAxis('hand/left', 'touchpad')
+  print("made head_q")
+  --local dx, dz = lovr.headset.getAxis('hand/left', 'touchpad')
+  --print("got controller")
 
-  move(head_q, dt, dx, dz)
+  --move(head_q, dt, dx, dz)
 
   local boardData = inSocket:receive()
   while boardData ~= nil do
