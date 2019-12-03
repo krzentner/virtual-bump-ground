@@ -25,7 +25,6 @@ end
 
 function draw_controllers()
   for hand in ipairs(lovr.headset.getHands()) do
-    print("hand:" .. hand)
     if hand == 1 then
       hand = 'hand/left'
     elseif hand == 2 then
@@ -47,7 +46,6 @@ function draw_sky()
 end
 
 function lovr.draw()
-  print("draw")
   draw_sky()
   draw_controllers()
 
@@ -65,43 +63,51 @@ function lovr.draw()
   end
 end
 
-local MOVE_COEF = 20
-local TURN_COEF = 3000.0
+local MOVE_COEF = 40
+local TURN_COEF = 2000.0
 local DX_BOARD_COEFF = 0.5
 local DX_COEF = 0.005
+local DY_COEF = 0.001
+local DEAD_ZONE = 0.05
+local MAX_ZONE = 0.6
 
 function move(frame_q, dt, dx, dz)
-  print("move", dx, dz)
   dx = MOVE_COEF * dt * dx * DX_COEF
   dz = -MOVE_COEF * dt * dz
   da = TURN_COEF * dt * dx
   local rotate_q = lovr.math.quat(-angle_offset, 0, 1, 0)
   local head_v = lovr.math.vec3(dx, 0, dz)
-  head_v = frame_q:mul(head_v)
+  --head_v = frame_q:mul(head_v)
   head_v = rotate_q:mul(head_v)
   --head_v = rotate_q:mul(head_v)
   local hdx, hdy, hdz = head_v:unpack()
-  print("angle:", angle_offset)
   x_offset = x_offset - MOVE_COEF * dt * hdx
   z_offset = z_offset - MOVE_COEF * dt * hdz
-  y_offset = y_offset - MOVE_COEF * dt * hdy
+  y_offset = y_offset - MOVE_COEF * dt * hdy * DY_COEF
   angle_offset = angle_offset + da
-  print("end move")
+end
+
+function dead_clip(v)
+  if math.abs(v) < DEAD_ZONE then
+    return 0
+  elseif math.abs(v) > MAX_ZONE then
+    if v > 0 then
+      return MAX_ZONE
+    else
+      return -MAX_ZONE
+    end
+  else
+    return v
+  end
 end
 
 function lovr.update(dt)
-  print("update")
-  if false then
-  	return nil
-  end
   -- Large dt values cause problems.
   if dt > 0.1 then
     dt = 0.1
   end
   local head_x, head_y, head_z, head_angle, head_ax, head_ay, head_az = lovr.headset.getPose('head')
-  print("got head pose")
   local head_q = lovr.math.quat(head_angle, head_ax, head_ay, head_az)
-  print("made head_q")
   --local dx, dz = lovr.headset.getAxis('hand/left', 'touchpad')
   --print("got controller")
 
@@ -111,9 +117,13 @@ function lovr.update(dt)
   while boardData ~= nil do
     dx = -(string.byte(boardData, 1) - 127) / 127
     dz = (string.byte(boardData, 2) - 127) / 127
-    print("boardData.dx: " .. dx)
-    print("boardData.dz: " .. dz)
-    move(head_q, dt, DX_BOARD_COEFF * dx, dz)
+    dz = dead_clip(dz)
+    dz = dz + 0.2
+    if dz < 0 then
+      dz = 0
+    end
+
+    move(head_q, dt, DX_BOARD_COEFF * dx, dz * dz)
     boardData = inSocket:receive()
   end
 end
