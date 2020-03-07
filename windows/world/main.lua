@@ -1,12 +1,29 @@
 print("Starting...")
-local socket = require("socket")
-local s1 = socket.udp()
-local inPort = 8000
-local localIP = assert(socket.dns.toip("localhost"))
-local inSocket = assert(socket.udp());
-inSocket:setsockname('*', inPort)
-inSocket:settimeout(0.001)
-s1:setpeername( "192.168.1.1", 18000)
+lovr.keyboard = require 'lovr-keyboard'
+
+function lovr.update(dt)
+  print(lovr.keyboard.isDown('space'))
+end
+
+local inSocket = nil
+local outSocket = nil
+function start_socket()
+	local socket = require("socket")
+	outSocket = socket.udp()
+	local inPort = 8000
+	inSocket = assert(socket.udp());
+	inSocket:setsockname('*', inPort)
+	inSocket:settimeout(0.001)
+	outSocket:setpeername( "192.168.1.1", 18000)
+end
+
+local sock_status, sock_err = pcall(start_socket)
+if sock_status then
+	print("Sockets started")
+else
+	print("Could not start sockets", sock_err)
+end
+
 local models = {}
 
 local x_offset = 0
@@ -109,10 +126,14 @@ function move(frame_q, dt, dx, dz)
   dz = -MOVE_COEF * dt * dz
 
   da = TURN_COEF * dt * dx
-    
+
   if time_to_next_vibration < 0 then
-	  local vibration = string.char(vl, 0xff, vl, 0xff,0,0,0,0)
-	  s1:send(vibration) -- start session
+		pcall(function()
+		  local vibration = string.char(vl, 0xff, vl, 0xff,0,0,0,0)
+			if outSocket then
+		  	outSocket:send(vibration) -- start session
+			end
+		end)
   	  --print("sent:", vibration)
 	time_to_next_vibration = VIBRATION_PACKET_RATE
   else
@@ -157,19 +178,38 @@ function lovr.update(dt)
 
   --move(head_q, dt, dx, dz)
 
-  local boardData = inSocket:receive()
-  while boardData ~= nil do
-    dx = -(string.byte(boardData, 1) - 127) / 127
-    dz = (string.byte(boardData, 2) - 127) / 127
-    dz = dead_clip(dz)
-    dz = dz + 0.2
-    if dz < 0 then
-      dz = 0
-    end
+	if inSocket then
+	  local boardData = inSocket:receive()
+	  while boardData ~= nil do
+	    dx = -(string.byte(boardData, 1) - 127) / 127
+	    dz = (string.byte(boardData, 2) - 127) / 127
+	    dz = dead_clip(dz)
+	    dz = dz + 0.2
+	    if dz < 0 then
+	      dz = 0
+	    end
 
-    move(head_q, dt, DX_BOARD_COEFF * dx, dz * dz)
-    boardData = inSocket:receive()
-  end
+	    move(head_q, dt, DX_BOARD_COEFF * dx, dz * dz)
+	    boardData = inSocket:receive()
+	  end
+	end
+
+	local rotate = 0
+	local forward = 0
+	if lovr.keyboard.isDown("a") then
+		rotate = rotate - 1
+	end
+	if lovr.keyboard.isDown("d") then
+		rotate = rotate + 1
+	end
+	if lovr.keyboard.isDown("w") then
+		forward = forward + 1
+	end
+	if lovr.keyboard.isDown("s") then
+		forward = forward - 1
+	end
+	move(head_q, dt, rotate, forward)
+
   print("dt_total", dt_total)
   print("x_offset", x_offset)
   print("z_offset", z_offset)
