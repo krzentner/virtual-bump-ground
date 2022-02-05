@@ -18,7 +18,7 @@ def get_table(lines):
                 try:
                     key, value = line.split('\t')
                     value = float(value)
-                    table[key].append(value)
+                    table[key] = value
                 except ValueError:
                     pass
     return table
@@ -37,9 +37,8 @@ def write_csv(table, filename):
         writer = csv.writer(f)
         writer.writerow(keys + ['user_id'])
         for user_id, user in enumerate(table):
-            for i in range(len(user['dz_total'])):
-                writer.writerow([user[key][i] for key in keys] + [user_id])
+            writer.writerow([user[key] for key in keys] + [user_id])
 
 
-write_csv(vibration, 'vibration.csv')
-write_csv(no_vibration, 'no_vibration.csv')
+write_csv(vibration, 'vibration_total.csv')
+write_csv(no_vibration, 'no_vibration_total.csv')
